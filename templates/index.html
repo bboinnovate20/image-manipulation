@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Document</title>
+
+    <style>
+        :root {
+    --primary-color: rgb(48, 1, 158);
+    --secondary-color:rgb(26, 3, 82);
+        }
+        body {
+            margin: 0 auto;
+            height: 100vh;
+            display: grid;
+            align-items: center;
+            place-items: center;
+            /* background-color: red; */
+        }
+
+        .main {
+            width: 80%;
+            height: 80vh;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            place-items: center;
+            align-items: center;
+            gap: 10;
+            background-color: #fff;
+            box-shadow: 1px 1px 10px #12012940;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .error,
+        .success{
+            color: #fff;
+            font-weight: bold;
+            padding: 10px;
+            width: 100%;
+            position: absolute;
+            text-align: center; 
+            top: 0;
+            left: 0;
+        }
+        .success {
+            background-color: green;
+        }
+        .error {
+            background-color: red;
+        }
+        #uploading {
+            display: none;
+            margin-block: 20px;
+
+        }
+       
+  
+        .features button{
+            background-color: var(--primary-color);
+            margin-bottom: 10px;
+            padding: 20px;
+            border-radius: 10px;
+            width: 100%;
+            color: #fff;
+            display: block;
+            border: none;
+            cursor: pointer;
+            transition: all .3s ease;
+        }
+        #download:hover,
+        .features .action-btn button:hover {
+            background-color: var(--secondary-color);
+            transform: scale(1.02);
+        }
+        #download {
+            background-color: var(--primary-color);
+            display: block;
+            border: none;
+            margin-top: 1rem;
+            text-align: center;
+            width: 100%;
+            margin-top: 1rem;
+            border-radius: 20px;
+            padding-block: 10px;
+            padding-inline: 20px;
+            color: #fff;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .image-container {
+            overflow: hidden;
+            margin: 80px;
+            object-fit: contain;
+            display: grid;
+            place-items: center;
+            
+        }
+        img {
+            max-width: 70%;
+            
+        }
+        #celebration {
+            position: absolute;
+            top: 30%;
+            left: 30%;
+            display: none;
+        }
+        #main-loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            /* background-color: red; */
+            padding: 5px;
+            width: 100%;
+        }
+        #loading {
+            padding: 5px;
+            background-color: var(--primary-color);
+            width: 50%;
+            border-radius: 10px;
+            transform: translateX(-100%);
+            animation: loading 1s infinite;
+        }   
+        #download-main {
+            display: none;
+        }
+        @keyframes loading {
+            0% {
+                transform: translateX(-100%);
+            }
+            50% {
+                width: 70%;
+            }
+            100% {
+                width: 100%;
+                transform: translateX(calc(100%));
+            }
+
+        }
+    </style>
+</head>
+<body>
+    <h4>Optimize image with python library</h4>
+    <div class="main">
+        <div id="main-loading"> </div>
+        <div class="features">
+            <div class="action-btn">
+                <div id="uploading">
+                    <form action="">
+                        <input accept="image/*"  type="file" name="file" id="file">
+                    </form>
+                </div>
+                <div>
+                    <button data-role="remove-bg">Remove image background</button>
+                </div>
+                <div>
+                    <button data-role="img-quality">Increase Image Quality</button>
+                </div>
+
+            </div>
+            
+        </div>
+
+        <div class="image-container">
+            <img id="celebration" src="/static/giphy.gif" alt="">
+            <img id="image-preview" src="" alt="">
+            <div id="download-main">
+                <button id="download">
+                    Download Now
+                </button>
+
+            </div>
+            
+           <!-- <p>Your image display here</p> -->
+        </div>
+    </div>
+</body>
+<!--  -->
+<script>
+    
+    const url = 'http://127.0.0.1:2727/api/v1/image'
+    const imgURL = 'http://127.0.0.1:2727/api/v1/image'
+    const getBtn = document.querySelectorAll('button');
+    const main = document.querySelector('.main');
+    const action = document.getElementsByClassName('action-btn');
+    const upload = document.getElementById('uploading');
+    const loadingContainer =document.getElementById('main-loading');
+    const celeb = document.getElementById('celebration');
+    const downloadMain = document.getElementById('download-main');
+    
+    let loading = false;
+    let dataRole = null;
+    let formData = null;
+    let downloadURL = null;
+    
+
+    downloadMain.addEventListener('click', () => {
+        if(downloadURL) {
+            download(downloadURL)
+        }
+    })
+
+    getBtn.forEach((btn) => btn.addEventListener('click', () => {
+
+            // change the ui
+            getBtn.forEach((btn) => btn.style.backgroundColor = "var(--primary-color)")
+            upload.style.display = 'block'
+            btn.style.backgroundColor = 'red'
+            dataRole = btn.dataset['role'];
+
+        }
+    ) )
+
+    onChangeFileInput();
+
+
+
+    function createForm(file) {        
+        const form = new  FormData();
+        form.append('action', dataRole)
+        form.append('file', file)
+        formData = form;
+
+        submitForm();
+    }
+
+    async function submitForm() {
+        if(formData) {
+            setLoading(true)
+            try {
+                const response = await fetch(url, {
+                    
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        // 'Content-Type': 'multipart/form-data'
+                    },
+                })
+                jsonResponse =  await response.json();
+
+                if(response.status == 200) {
+                    onCompleted(true, "", jsonResponse.data.path)
+                    previewImage(jsonResponse.data.path) 
+                }
+
+                else {
+                    console.log( jsonResponse.message)
+                    onCompleted(false, jsonResponse.message, '')
+                }
+                setLoading(false)
+                
+            } catch (error) {
+
+                onCompleted(false, 'Unable to process request', '')
+            }
+        }
+    }
+
+
+    function onChangeFileInput() {
+        
+        const file = document.getElementById('file');
+        file.addEventListener('change', (event) => {
+            const fileInput = event.target.files[0];
+            previewUploadedImage(fileInput);
+            console.log(fileInput);
+            createForm(fileInput);
+        })
+        
+    }
+
+    function setLoading(isLoading, isDownloading=false, successMessage="") {
+        if(isLoading) {
+            main.style.pointerEvents = 'none'
+            if(!isDownloading) downloadMain.style.display = 'none'
+            loadingContainer.innerHTML = '<div id="loading"></div>'
+        }
+        else {
+            if(successMessage.length > 1)  {
+                loadingContainer.innerHTML = `<div class="success">${successMessage}</div>`
+            }
+            main.style.pointerEvents = 'fill'
+        }
+    }
+    function onCompleted(isSuccess, message, imgPath) {
+        if(isSuccess) {
+            loadingContainer.innerHTML = '<div class="success">Successfully Processed Image</div>'
+            ext = imgPath.toString().split('.').pop()
+            downloadURL = imgPath;
+            downloadMain.style.display = 'block';
+            // downloadMain.innerHTML = `<a href=${imgPath} download="bboi-image.${ext}" target="_black" id="download">Download Image</a>`
+            celeb.style.display = 'block'
+            setTimeout(() => {
+                celeb.style.display = 'none'
+            }, 600)
+        }
+        else {
+            
+            loadingContainer.innerHTML = `<div class="error">Error: ${message}</div>`
+            downloadMain.style.display = 'none'
+            
+        }
+    }
+
+    function previewImage(src) {
+        document.getElementById('image-preview').src = src;
+    }
+
+    function previewUploadedImage(file) {
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+                const imgSrc = e.target.result;
+                document.getElementById('image-preview').src = imgSrc;
+        }
+
+        reader.readAsDataURL(file);
+    }
+
+    async function download(url) {
+        setLoading(true, true)
+        const response = await fetch(url)
+
+        const blob = await response.blob();
+        
+        const blobURL = URL.createObjectURL(blob);
+
+        
+        const link = document.createElement("a");
+        ext = url.toString().split('.').pop()
+        link.href = blobURL;
+        link.download = `bboi-image.${ext}`;
+        document.body.appendChild(link);
+        link.click();
+        setLoading(false, false, "Successfully downloaded!")
+    }
+</script>
+</html>
